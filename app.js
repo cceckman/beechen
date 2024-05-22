@@ -3,7 +3,8 @@ const primary = document.getElementById("primary");
 const play = document.getElementById("play");
 const song = document.getElementById("song");
 
-const imgurl = "https://upload.wikimedia.org/wikipedia/commons/0/0c/Luscinia_luscinia._Svenska_f%C3%A5glar.jpg"
+/* const imgurl = "https://upload.wikimedia.org/wikipedia/commons/0/0c/Luscinia_luscinia._Svenska_f%C3%A5glar.jpg" */
+const imgurl = "Tracing-fill.svg";
 
 let birds = new Array();
 let playing = false;
@@ -27,6 +28,9 @@ function toggle_play() {
         play_once()
         play.innerText = "⏸";
         for (const bird of birds) {
+            bird.element.addEventListener("transitionend", () => {
+                bird.fly();
+            });
             bird.fly();
         }
     } else {
@@ -105,16 +109,13 @@ class Bird {
     fly() {
         // Call-to-self.
         if (playing) {
-            this.element.addEventListener("transitionend", () => {
-                this.fly();
-            });
             this.update_location()
         }
     }
 
 }
 
-for (let i = 0; i < 10; i++) {
+for (let i = 0; i < 13; i++) {
     let b = new Bird();
     birds.push(b);
 }

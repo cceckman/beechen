@@ -34,9 +34,11 @@ p#float {
 
 .bird {
     position: fixed;
-    transform: scale(0.1, 0.1);
+    transform: scale(0.2, 0.2);
     transform-origin: top left;
 
     transition-property: top, left;
     transition-duration: 0.3s;
+
+    filter: drop-shadow(20pt 30pt 10pt black);
 }
