@@ -1,113 +1,122 @@
 
-const canvas = document.getElementById("draw-here");
+const primary = document.getElementById("primary");
+const play = document.getElementById("play");
+const song = document.getElementById("song");
 
-class HueGradient{
+const imgurl = "https://upload.wikimedia.org/wikipedia/commons/0/0c/Luscinia_luscinia._Svenska_f%C3%A5glar.jpg"
+
+let birds = new Array();
+let playing = false;
+
+function play_once() {
+    if (!playing) {
+        return;
+    }
+    // Skip past the catalog number:
+    song.currentTime = 6;
+    // Attach a repeat callback:
+    song.addEventListener("ended", play_once);
+    // And play:
+    song.play();
+}
+
+
+function toggle_play() {
+    if (!playing) {
+        playing = true;
+        play_once()
+        play.innerText = "⏸";
+        for (const bird of birds) {
+            bird.fly();
+        }
+    } else {
+        playing = false;
+        song.pause();
+        play.innerText = "▶";
+    }
+}
+
+play.addEventListener("click", toggle_play);
+
+function pct(v) {
+    return Math.round(100 * v);
+}
+
+// From https://stackoverflow.com/questions/25582882/javascript-math-random-normal-distribution-gaussian-bell-curve
+function rand_normal(mean = 0, stdev = 1) {
+    const u = 1 - Math.random(); // Converting [0,1) to (0,1]
+    const v = Math.random();
+    const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    // Transform to the desired mean and standard deviation:
+    return z * stdev + mean;
+}
+
+function randcoord() {
+    return rand_normal(0.5, 0.2);
+}
+
+class Bird {
     constructor() {
-        this.sat = Math.round(Math.random() * 70 + 30);
-        this.val = Math.round(Math.random() * 70 + 30);
-        this.start_color = Math.round(Math.random() * 360);
-        this.speed = Math.round(Math.random() * 360);
+        // How long it takes to fly to a new location.
+        this.flutter = -1;
+        while (this.flutter < 0.3) {
+            this.flutter = rand_normal(1.2, 0.5);
+        }
+        this.leave = -1;
+        while (this.leave < 0.3) {
+            this.leave = rand_normal(5, 2);
+        }
+
+        this.element = document.createElement("img");
+        this.element.src = imgurl;
+        this.element.classList.add("bird");
+
+        // We want to make our fly-in look nice, minimize crossings.
+        // Pick our "first target" locations
+        // We need to start offscreen:
+        const first_x = randcoord();
+        const first_y = randcoord();
+        // And then advance them offscreen:
+        if (first_x < 0.5) {
+            this.x = first_x - 2;
+        } else {
+            this.x = first_x + 2;
+        }
+        if (first_y < 0.5) {
+            this.y = first_y - 2;
+        } else {
+            this.y = first_y + 2;
+        }
+        this.update_location();
+        // Then set the next target:
+        this.x = first_x;
+        this.y = first_y;
+
+        primary.appendChild(this.element);
+
     }
 
-    gradient_for_column(ctx, height, column) {
-        const start_color = (this.start_color + column * this.speed) % 360;
-        const mid_color = (start_color + 90) % 360;
-        const end_color = (start_color + 180) % 360;
-        const start_str = `hsl(${start_color}deg, ${this.sat}%, ${this.val}%)`;
-        const mid_str = `hsl(${mid_color}deg, ${this.sat}%, ${this.val}%)`;
-        const end_str = `hsl(${end_color}deg, ${this.sat}%, ${this.val}%)`;
-
-        // console.log("colors: ", start_str, end_str)
-        // Gradient only in the vertical dimension.
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, start_str);
-        grad.addColorStop(0.5, mid_str);
-        grad.addColorStop(1, end_str);
-        return grad;
-    }
-}
-
-function to_pct(v) {
-    return Math.round(v * 100);
-}
-
-class LightnessGradient{
-    constructor() {
-        this.sat = to_pct(Math.random() * 90 + 10);
-        this.color = Math.round(Math.random() * 360);
-        // Use sin(sat) so we get a nice back-and-forth, like real yarn
-        this.start_val = Math.round(Math.random() * 360);
-
-        const a = Math.random();
-        const b = Math.random();
-        this.min_val = Math.min(a, b);
-        this.max_val = Math.max(a, b);
-        this.speed = Math.round(Math.random() * 360);
+    update_location() {
+        this.element.style = `transition-delay: ${this.leave}s; transition-duration: ${this.flutter}s; left: ${pct(this.x)}%; top: ${pct(this.y)}%`;
+        this.x = randcoord();
+        this.y = randcoord();
     }
 
-    angle_to_pct(angle) {
-        let fraction = Math.sin(angle);
-        let v = this.min_val + (this.max_val - this.min_val) * fraction;
-        return to_pct(v);
-    }
-
-    gradient_for_column(ctx, height, column) {
-        // Sped is- kinda unitless?
-        const start = (this.start_val + column * this.speed);
-        const mid = start + this.speed;
-        const end = mid + this.speed;
-
-        const start_str = `hsl(${this.color}deg, ${this.sat}%,  ${this.angle_to_pct(start)}%)`;
-        const mid_str = `hsl(${this.color}deg, ${this.sat}%,    ${this.angle_to_pct(mid)}%)`;
-        const end_str = `hsl(${this.color}deg, ${this.sat}%,    ${this.angle_to_pct(end)}%)`;
-
-        console.log("colors:", start_str, mid_str, end_str)
-
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, start_str);
-        grad.addColorStop(0.5, mid_str);
-        grad.addColorStop(1, end_str);
-        return grad;
-    }
-}
-
-// Use https://stackoverflow.com/questions/4288253/html5-canvas-100-width-height-of-viewport ?
-function rerender() {
-    canvas.height = canvas.clientHeight;
-    canvas.width = canvas.clientWidth;
-    let h = canvas.height;
-    let w = canvas.width;
-    console.log("dims: ", canvas.clientHeight, canvas.clientWidth);
-    console.log("dims: ", h, w);
-    let ctx = canvas.getContext("2d");
-
-    let gradient_params = [];
-
-    const params = new URLSearchParams(window.location.search);
-    const stitchwidth = Number(params.get("stitchwidth") ?? 19);
-    const stitchheight = Number(params.get("stitchheight") ?? 13);
-    const threads = Number(params.get("threads") ?? 3);
-    const mode = params.get("mode") ?? "";
-    console.log("params:", stitchwidth, stitchheight, threads);
-
-    for (let col = 0; col < threads; col++) {
-        let constructor = LightnessGradient;
-        if(mode === "hue" || (mode === "" && Math.random() >= 0.5)) {
-            constructor = HueGradient;
-        } 
-        gradient_params.push(new constructor());
-    }
-
-    let thread = 0;
-    for(let column = 0; column < (w / stitchwidth); column++) {
-        const x0 = column * stitchwidth;
-        let gradients = gradient_params.map((g) => g.gradient_for_column(ctx, h, column));
-        for (let y0 = 0; y0 < h; y0 += stitchheight) {
-            ctx.fillStyle = gradients[thread];
-            thread = (thread + 1) % threads;
-            ctx.fillRect(x0, y0, stitchwidth, stitchheight);
+    fly() {
+        // Call-to-self.
+        if (playing) {
+            this.element.addEventListener("transitionend", () => {
+                this.fly();
+            });
+            this.update_location()
         }
     }
+
 }
 
-window.addEventListener("load", rerender);
+for (let i = 0; i < 10; i++) {
+    let b = new Bird();
+    birds.push(b);
+}
+
+

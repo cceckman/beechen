@@ -1,5 +1,9 @@
+* {
+    margin: 0;
+    padding: 0;
+}
 
-* { margin:0; padding:0; } /* to remove the top and left whitespace */
+/* to remove the top and left whitespace */
 
 html,
 body {
@@ -7,10 +11,14 @@ body {
     height: 100%;
 }
 
-canvas {
-    display: block;
-    width: 100vw;
-    height: 100vh;
+#primary {
+    width: 100%;
+    height: 100%;
+    background-color: green;
+}
+
+audio {
+    display: none;
 }
 
 p#float {
@@ -19,7 +27,16 @@ p#float {
     bottom: 1em;
     background: white;
     font-weight: bolder;
-    width: min-content;
+    /* width: min-content; */
     padding: 0.5em;
     border-radius: 0.25em;
+}
+
+.bird {
+    position: fixed;
+    transform: scale(0.1, 0.1);
+    transform-origin: top left;
+
+    transition-property: top, left;
+    transition-duration: 0.3s;
 }
